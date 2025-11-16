@@ -26,19 +26,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarIcon, MapPinIcon, TrophyIcon, UsersIcon } from "lucide-react";
-import dynamic from "next/dynamic";
-
-// Dynamically import select component that might cause hydration issues
-const DynamicSelect = dynamic(
-  () => import("@/components/ui/select").then((mod) => mod.Select),
-  { ssr: false }
-);
 
 const matchSchema = z.object({
   teamA: z.string().min(1, "Team A name is required"),
@@ -157,27 +151,27 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+    <div className="min-h-screen bg-white/10 dark:bg-gray-900/10 border-b border-white/20 dark:border-gray-700/20 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-3">
-            <TrophyIcon className="h-10 w-10 text-green-600" />
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 flex items-center justify-center gap-3">
+            <TrophyIcon className="h-10 w-10 text-green-600 dark:text-green-400" />
             Cricket Scorecard Builder
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 dark:text-gray-300">
             Create and manage professional cricket matches
           </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Create Match Form */}
-          <Card className="shadow-lg">
+          <Card className="shadow-lg bg-white/80 dark:bg-gray-900/30 backdrop-blur-sm border-white/20 dark:border-gray-700/20">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UsersIcon className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                <UsersIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
                 Create New Match
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-300">
                 Set up a new cricket match with detailed information
               </CardDescription>
             </CardHeader>
@@ -187,7 +181,7 @@ export default function HomePage() {
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"
                 >
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="teamA"
@@ -222,7 +216,7 @@ export default function HomePage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Match Type</FormLabel>
-                        <DynamicSelect
+                        <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
@@ -237,13 +231,13 @@ export default function HomePage() {
                             <SelectItem value="Test">Test</SelectItem>
                             <SelectItem value="Custom">Custom</SelectItem>
                           </SelectContent>
-                        </DynamicSelect>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="date"
@@ -309,10 +303,12 @@ export default function HomePage() {
           </Card>
 
           {/* Matches List */}
-          <Card className="shadow-lg">
+          <Card className="shadow-lg bg-white/80 dark:bg-gray-900/30 backdrop-blur-sm border-white/20 dark:border-gray-700/20">
             <CardHeader>
-              <CardTitle>Recent Matches</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white">
+                Recent Matches
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-300">
                 {matches.length === 0
                   ? "No matches created yet"
                   : `${matches.length} match${
@@ -322,7 +318,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               {matches.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <TrophyIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>
                     No matches created yet. Create your first match to get
@@ -334,42 +330,46 @@ export default function HomePage() {
                   {matches.map((match) => (
                     <Card
                       key={match.id}
-                      className="border-l-4 border-l-green-500"
+                      className="border-l-4 border-l-green-500 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm border-white/20 dark:border-gray-600/20"
                     >
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h3 className="font-semibold text-lg">
+                            <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
                               {match.teamA.name} vs {match.teamB.name}
                             </h3>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mt-1">
                               {match.matchType && (
                                 <span className="flex items-center gap-1">
-                                  <TrophyIcon className="h-4 w-4" />
+                                  <TrophyIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                                   {match.matchType}
                                 </span>
                               )}
                               {match.date && (
                                 <span className="flex items-center gap-1">
-                                  <CalendarIcon className="h-4 w-4" />
+                                  <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                   {new Date(match.date).toLocaleDateString()}
                                 </span>
                               )}
                               {match.venue && (
                                 <span className="flex items-center gap-1">
-                                  <MapPinIcon className="h-4 w-4" />
+                                  <MapPinIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                                   {match.venue}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <Button asChild size="sm">
+                          <Button
+                            asChild
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+                          >
                             <Link href={`/scorecard/${match.id}`}>
                               Open Scorecard
                             </Link>
                           </Button>
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           Overs per innings: {match.oversPerInnings || 20}
                         </div>
                       </CardContent>
