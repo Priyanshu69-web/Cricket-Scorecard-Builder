@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sun, Moon, Trophy } from "lucide-react";
+import { Menu, X, Sun, Moon, LogOut, LogIn, BarChart3 } from "lucide-react";
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
+  const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -32,8 +35,8 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { name: "Home", href: "/" },
-    { name: "Scorecard", href: "/scorecard" },
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "Create", href: "/scorecard/create" },
   ];
 
   const navVariants = {
@@ -71,7 +74,7 @@ const Navbar = () => {
       initial="hidden"
       animate="visible"
       variants={navVariants}
-      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/10 dark:bg-gray-900/10 border-b border-white/20 dark:border-gray-700/20  shadow-lg"
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/50 shadow-2xl"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -81,39 +84,39 @@ const Navbar = () => {
               <motion.div
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.8 }}
-                initial={{ scale: 10, top: 100, left: 100 }}
-                animate={{ scale: 1, top: 0, left: 0 }}
               >
-                <Trophy className="h-8 w-8 text-green-600 dark:text-green-400" />
+                <BarChart3 className="h-7 w-7 text-blue-500" />
               </motion.div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">
-                Cricket Scorecard
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Scorecard
               </span>
             </Link>
           </motion.div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              {navItems.map((item) => (
-                <motion.div key={item.name} variants={itemVariants}>
-                  <Link
-                    href={item.href}
-                    className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                  >
-                    {item.name}
-                  </Link>
-                </motion.div>
-              ))}
+          {session && (
+            <div className="hidden md:block">
+              <div className="ml-10 flex items-baseline space-x-1">
+                {navItems.map((item) => (
+                  <motion.div key={item.name} variants={itemVariants}>
+                    <Link
+                      href={item.href}
+                      className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                    >
+                      {item.name}
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Theme Toggle & Mobile Menu Button */}
+          {/* Right Section */}
           <div className="flex items-center space-x-4">
             <motion.button
               variants={itemVariants}
               onClick={toggleTheme}
-              className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+              className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors duration-200"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -124,12 +127,53 @@ const Navbar = () => {
               )}
             </motion.button>
 
+            {session ? (
+              <>
+                <div className="hidden sm:flex items-center space-x-2">
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-white">
+                      {session.user?.name}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {session.user?.email}
+                    </div>
+                  </div>
+                  {session.user?.image && (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || ""}
+                      className="w-8 h-8 rounded-full border-2 border-blue-500"
+                    />
+                  )}
+                </div>
+                <Button
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-300 hover:text-white"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <Link href="/auth/signin">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
+
             {/* Mobile menu button */}
             <div className="md:hidden">
               <motion.button
                 variants={itemVariants}
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+                className="p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors duration-200"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -152,10 +196,10 @@ const Navbar = () => {
             animate="open"
             exit="closed"
             variants={mobileMenuVariants}
-            className="md:hidden overflow-hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-white/20 dark:border-gray-700/20"
+            className="md:hidden overflow-hidden bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50"
           >
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              {navItems.map((item, index) => (
+              {session && navItems.map((item, index) => (
                 <motion.div
                   key={item.name}
                   initial={{ opacity: 0, x: -20 }}
@@ -164,7 +208,7 @@ const Navbar = () => {
                 >
                   <Link
                     href={item.href}
-                    className="text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                    className="text-slate-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
                     onClick={() => setIsOpen(false)}
                   >
                     {item.name}

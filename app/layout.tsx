@@ -1,22 +1,26 @@
+"use client";
+
 import "./globals.css";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import Toaster from "@/components/Toaster";
 import Navbar from "@/components/Navbar";
+import { SessionProvider } from "next-auth/react";
 
-const geistSans = Geist({
+const geistSans = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Cricket Scorecard Builder",
-  description: "Professional cricket scorecard builder with modern UI",
+const metadata: Metadata = {
+  title: "Scorecard Builder - Professional Scoring Made Easy",
+  description:
+    "Create, manage, and share custom scorecards for any sport or activity",
 };
 
 export default function RootLayout({
@@ -27,11 +31,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900`}
       >
-        <Navbar />
-        <main className="pt-16">{children}</main>
-        <Toaster />
+        <SessionProvider>
+          <Navbar />
+          <main className="min-h-screen">{children}</main>
+          <Toaster />
+        </SessionProvider>
       </body>
     </html>
   );
