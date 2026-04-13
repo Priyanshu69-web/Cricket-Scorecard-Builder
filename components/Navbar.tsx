@@ -37,6 +37,7 @@ const Navbar = () => {
   const navItems = [
     { name: "Matches", href: "/scorecard" },
     { name: "New Match", href: "/scorecard/create" },
+    { name: "Players", href: "/players" },
   ];
 
   const navVariants = {

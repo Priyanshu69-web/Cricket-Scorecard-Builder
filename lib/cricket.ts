@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
   BallEvent,
-  Batter,
   BatterStats,
   BowlerStats,
   ExtraType,
@@ -9,7 +8,6 @@ import {
   Match,
   MatchFormat,
   MatchSnapshot,
-  OverSummary,
   Team,
 } from "@/types/cricket";
 
@@ -22,8 +20,8 @@ export type CreateMatchInput = {
   tossDecision: "bat" | "bowl";
   venue?: string;
   date?: string;
-  teamAPlayers: string[];
-  teamBPlayers: string[];
+  teamAPlayers: Array<string | { name: string; profileId?: string }>;
+  teamBPlayers: Array<string | { name: string; profileId?: string }>;
 };
 
 export type ScoringAction =
@@ -59,20 +57,25 @@ export function quickPlayers(teamName: string) {
   return Array.from({ length: 11 }, (_, index) => `${teamName} Player ${index + 1}`);
 }
 
-function buildTeam(name: string, players: string[]): Team {
+function buildTeam(
+  name: string,
+  players: Array<string | { name: string; profileId?: string }>
+): Team {
   return {
     id: uuidv4(),
     name,
-    players: players.map((player) => ({
-      id: uuidv4(),
-      name: player.trim(),
-    })),
+    players: players.map((player) =>
+      typeof player === "string"
+        ? { id: uuidv4(), name: player.trim() }
+        : { id: uuidv4(), name: player.name.trim(), profileId: player.profileId }
+    ),
   };
 }
 
 function initBatting(team: Team): BatterStats[] {
   return team.players.map((player) => ({
     playerId: player.id,
+    profileId: player.profileId,
     name: player.name,
     runs: 0,
     balls: 0,
@@ -85,6 +88,7 @@ function initBatting(team: Team): BatterStats[] {
 function initBowling(team: Team): BowlerStats[] {
   return team.players.map((player) => ({
     playerId: player.id,
+    profileId: player.profileId,
     name: player.name,
     balls: 0,
     maidens: 0,
@@ -115,7 +119,7 @@ function buildInnings(
     totalRuns: 0,
     wickets: 0,
     legalBalls: 0,
-    extras: { wides: 0, noBalls: 0, byes: 0 },
+    extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
     strikerId: battingTeam.players[0]?.id || null,
     nonStrikerId: battingTeam.players[1]?.id || null,
     currentBowlerId: bowlingTeam.players[0]?.id || null,
@@ -125,6 +129,7 @@ function buildInnings(
     bowling: initBowling(bowlingTeam),
     timeline: [],
     overSummaries: [],
+    fallOfWickets: [],
   };
 }
 
@@ -284,6 +289,9 @@ export function applyScoringAction(match: Match, action: ScoringAction) {
     } else if (action.extraType === "nb") {
       innings.extras.noBalls += action.runs;
       legalDelivery = false;
+    } else if (action.extraType === "lb") {
+      innings.extras.legByes += action.runs;
+      striker.balls += 1;
     } else {
       innings.extras.byes += action.runs;
       striker.balls += 1;
@@ -300,6 +308,12 @@ export function applyScoringAction(match: Match, action: ScoringAction) {
     commentary = `${striker.name} is out ${striker.dismissal}.`;
     bowler.wickets += 1;
     innings.wickets += 1;
+    innings.fallOfWickets.push({
+      score: innings.totalRuns,
+      wicket: innings.wickets,
+      over: `${Math.floor(innings.legalBalls / 6)}.${innings.legalBalls % 6}`,
+      batterName: striker.name,
+    });
   }
 
   innings.totalRuns += totalRuns;

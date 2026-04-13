@@ -1,4 +1,31 @@
 export type MatchFormat = "T20" | "ODI" | "Test" | "Custom";
+export type PlayerRole = "Batsman" | "Bowler" | "All-rounder" | "Wicketkeeper";
+export type BattingStyle = "Right" | "Left";
+
+export type PlayerProfile = {
+  _id: string;
+  name: string;
+  imageUrl?: string;
+  role: PlayerRole;
+  battingStyle: BattingStyle;
+  bowlingStyle?: string;
+  matchesPlayed: number;
+  batting: {
+    runs: number;
+    balls: number;
+    outs: number;
+    average: number;
+    strikeRate: number;
+    fours: number;
+    sixes: number;
+  };
+  bowling: {
+    balls: number;
+    runsConceded: number;
+    wickets: number;
+    economy: number;
+  };
+};
 
 export type DismissalType =
   | "bowled"
@@ -9,15 +36,17 @@ export type DismissalType =
   | "hit wicket"
   | "retired out";
 
-export type ExtraType = "wd" | "nb" | "bye";
+export type ExtraType = "wd" | "nb" | "bye" | "lb";
 
 export type Batter = {
   id: string;
   name: string;
+  profileId?: string;
 };
 
 export type BatterStats = {
   playerId: string;
+  profileId?: string;
   name: string;
   runs: number;
   balls: number;
@@ -29,6 +58,7 @@ export type BatterStats = {
 
 export type BowlerStats = {
   playerId: string;
+  profileId?: string;
   name: string;
   balls: number;
   maidens: number;
@@ -41,6 +71,13 @@ export type Team = {
   id: string;
   name: string;
   players: Batter[];
+};
+
+export type FallOfWicket = {
+  score: number;
+  wicket: number;
+  over: string;
+  batterName: string;
 };
 
 export type BallEvent = {
@@ -74,6 +111,7 @@ export type Innings = {
     wides: number;
     noBalls: number;
     byes: number;
+    legByes: number;
   };
   strikerId: string | null;
   nonStrikerId: string | null;
@@ -84,6 +122,7 @@ export type Innings = {
   bowling: BowlerStats[];
   timeline: BallEvent[];
   overSummaries: OverSummary[];
+  fallOfWickets: FallOfWicket[];
 };
 
 export type MatchStatus = "live" | "innings break" | "completed";
