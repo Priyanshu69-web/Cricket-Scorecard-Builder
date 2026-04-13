@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, ArrowRight } from "lucide-react";
-import bcryptjs from "bcryptjs";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -55,15 +54,13 @@ export default function SignUpPage() {
     }
 
     try {
-      const hashedPassword = await bcryptjs.hash(password, 10);
-
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           email,
-          password: hashedPassword,
+          password,
         }),
       });
 

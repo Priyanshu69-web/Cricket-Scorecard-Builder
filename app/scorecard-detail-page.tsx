@@ -1,452 +1,357 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
-import { redirect, useParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import { useParams, useRouter } from "next/navigation";
 import {
-  Download,
-  Image,
-  Printer,
-  Share2,
-  Edit2,
-  Trash2,
   ArrowLeft,
-  Loader2,
   Copy,
-  Check,
+  RotateCcw,
+  Target,
+  Trash2,
+  Trophy,
 } from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import ScoreTable from "@/components/ScoreTable";
+import {
+  applyScoringAction,
+  currentPartnership,
+  deleteMatch,
+  economyRate,
+  formatDate,
+  getBatter,
+  getCurrentInnings,
+  getMatchResult,
+  getRequiredRunRate,
+  getTarget,
+  getTeamById,
+  loadMatch,
+  runRate,
+  saveMatch,
+  scoreSummary,
+  selectBowler,
+  strikeRate,
+  toOvers,
+  undoLastBall,
+} from "@/lib/cricket";
+import { BallEvent, Match } from "@/types/cricket";
+
+function ballTone(event: BallEvent) {
+  if (event.wicket) return "bg-rose-400/20 text-rose-200 border-rose-300/20";
+  if (event.extraType) return "bg-amber-300/20 text-amber-100 border-amber-300/20";
+  if (event.runs === 0) return "bg-sky-300/15 text-sky-100 border-sky-300/15";
+  return "bg-emerald-300/15 text-emerald-100 border-emerald-300/15";
+}
 
 export default function ScorecardDetailPage() {
-  const { data: session, status } = useSession();
   const params = useParams();
-  const scorecardsRef = useRef<HTMLDivElement>(null);
-  const [scorecard, setScorecard] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [values, setValues] = useState<Record<string, any>>({});
-  const [shareToken, setShareToken] = useState("");
-  const [copied, setCopied] = useState(false);
-
-  if (status === "unauthenticated") {
-    redirect("/auth/signin");
-  }
+  const router = useRouter();
+  const [match, setMatch] = useState<Match | null>(null);
 
   useEffect(() => {
-    if (params.id && session?.user?.id) {
-      fetchScorecard();
+    const matchId = String(params.id || "");
+    const stored = loadMatch(matchId);
+    if (!stored) {
+      router.push("/scorecard");
+      return;
     }
-  }, [params.id, session?.user?.id]);
+    setMatch(stored);
+  }, [params.id, router]);
 
-  const fetchScorecard = async () => {
-    try {
-      const response = await fetch(`/api/scorecards/${params.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setScorecard(data);
-        
-        const initialValues: Record<string, any> = {};
-        data.fields?.forEach((field: any) => {
-          const existingValue = data.values?.find(
-            (v: any) => v.fieldId === field.id
-          );
-          initialValues[field.id] = existingValue?.value || "";
-        });
-        setValues(initialValues);
-      } else {
-        toast.error("Scorecard not found");
-      }
-    } catch (error) {
-      toast.error("Failed to load scorecard");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const innings = useMemo(() => (match ? getCurrentInnings(match) : null), [match]);
+  const battingTeam = match && innings ? getTeamById(match, innings.battingTeamId) : null;
+  const bowlingTeam = match && innings ? getTeamById(match, innings.bowlingTeamId) : null;
+  const striker = innings ? getBatter(innings, innings.strikerId) : null;
+  const nonStriker = innings ? getBatter(innings, innings.nonStrikerId) : null;
+  const bowler = innings?.bowling.find((item) => item.playerId === innings.currentBowlerId) || null;
+  const target = match ? getTarget(match) : null;
+  const requiredRate = match ? getRequiredRunRate(match) : null;
+  const partnership = innings ? currentPartnership(innings) : { runs: 0, balls: 0 };
 
-  const handleSaveValues = async () => {
-    try {
-      const response = await fetch(`/api/scorecards/${params.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          values: Object.entries(values).map(([fieldId, value]) => ({
-            fieldId,
-            value,
-          })),
-        }),
-      });
-
-      if (response.ok) {
-        toast.success("Scorecard updated successfully!");
-        setIsEditing(false);
-        await fetchScorecard();
-      } else {
-        toast.error("Failed to update scorecard");
-      }
-    } catch (error) {
-      toast.error("An error occurred while saving");
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (!scorecardsRef.current) return;
-
-    try {
-      const canvas = await html2canvas(scorecardsRef.current, {
-        backgroundColor: null,
-        scale: 2,
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      pdf.save(`${scorecard.title}.pdf`);
-      toast.success("PDF exported successfully!");
-    } catch (error) {
-      toast.error("Failed to export PDF");
-    }
-  };
-
-  const handleExportImage = async () => {
-    if (!scorecardsRef.current) return;
-
-    try {
-      const canvas = await html2canvas(scorecardsRef.current, {
-        backgroundColor: null,
-        scale: 2,
-      });
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `${scorecard.title}.png`;
-      link.click();
-      toast.success("Image exported successfully!");
-    } catch (error) {
-      toast.error("Failed to export image");
-    }
-  };
-
-  const handleShare = async () => {
-    try {
-      const response = await fetch(`/api/scorecards/${params.id}/share`, {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setShareToken(data.shareToken);
-        toast.success("Share link created!");
-      }
-    } catch (error) {
-      toast.error("Failed to create share link");
-    }
-  };
-
-  const copyShareLink = () => {
-    const link = `${window.location.origin}/share/${shareToken}`;
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this scorecard?")) return;
-
-    try {
-      const response = await fetch(`/api/scorecards/${params.id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("Scorecard deleted successfully!");
-        redirect("/dashboard");
-      } else {
-        toast.error("Failed to delete scorecard");
-      }
-    } catch (error) {
-      toast.error("An error occurred while deleting");
-    }
-  };
-
-  if (status === "loading" || !scorecard) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
+  if (!match || !innings || !battingTeam || !bowlingTeam) {
+    return null;
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  };
+  function updateMatch(nextMatch: Match) {
+    setMatch(nextMatch);
+    saveMatch(nextMatch);
+  }
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
-  };
+  function scoreRuns(runs: 0 | 1 | 2 | 3 | 4 | 6) {
+    if (!match) {
+      return;
+    }
+    updateMatch(applyScoringAction(match, { type: "runs", runs }));
+  }
+
+  function addExtra(extraType: "wd" | "nb" | "bye") {
+    if (!match) {
+      return;
+    }
+    updateMatch(applyScoringAction(match, { type: "extra", extraType, runs: 1 }));
+  }
+
+  function wicket() {
+    if (!match) {
+      return;
+    }
+    updateMatch(applyScoringAction(match, { type: "wicket", dismissal: "bowled" }));
+  }
+
+  function undo() {
+    if (!match) {
+      return;
+    }
+    const next = undoLastBall(match);
+    updateMatch(next);
+  }
+
+  function handleDelete() {
+    if (!match) {
+      return;
+    }
+    if (!window.confirm("Delete this match?")) {
+      return;
+    }
+    deleteMatch(match.id);
+    router.push("/scorecard");
+  }
+
+  function copySummary() {
+    if (!match || !innings) {
+      return;
+    }
+    const text = `${match.teamA.name} vs ${match.teamB.name}\n${scoreSummary(match)}\n${match.status === "completed" ? getMatchResult(match) : `Run Rate ${runRate(innings.totalRuns, innings.legalBalls)}`}`;
+    navigator.clipboard.writeText(text);
+    toast.success("Match summary copied.");
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20">
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Header */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="mb-8"
-        >
-          <motion.div variants={itemVariants} className="mb-6">
-            <Link
-              href="/dashboard"
-              className="flex items-center text-blue-400 hover:text-blue-300 mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_26%),linear-gradient(180deg,_#0a1420_0%,_#111d2d_45%,_#09111a_100%)] pt-20">
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <Link href="/scorecard" className="mb-4 inline-flex items-center text-sm text-sky-100 hover:text-white">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to matches
             </Link>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h1 className="text-4xl font-bold text-white mb-2">
-                  {scorecard.title}
-                </h1>
-                <p className="text-slate-400">
-                  {scorecard.description || "No description"}
-                </p>
-              </div>
-              <div className="inline-block px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full">
-                <span className="text-sm text-blue-300">{scorecard.type}</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={() => setIsEditing(!isEditing)}
-                variant="outline"
-                className="border-slate-600 text-slate-300"
-              >
-                <Edit2 className="h-4 w-4 mr-2" />
-                {isEditing ? "View" : "Edit"}
-              </Button>
-              <Button
-                onClick={handleExportPDF}
-                variant="outline"
-                className="border-slate-600 text-slate-300"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                PDF
-              </Button>
-              <Button
-                onClick={handleExportImage}
-                variant="outline"
-                className="border-slate-600 text-slate-300"
-              >
-                <Image className="h-4 w-4 mr-2" />
-                Image
-              </Button>
-              <Button
-                onClick={() => window.print()}
-                variant="outline"
-                className="border-slate-600 text-slate-300"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
-              <Button
-                onClick={handleShare}
-                variant="outline"
-                className="border-slate-600 text-slate-300"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button
-                onClick={handleDelete}
-                variant="outline"
-                className="border-red-600/50 text-red-400 hover:bg-red-950"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </motion.div>
+            <h1 className="text-3xl font-semibold text-white">
+              {match.teamA.name} vs {match.teamB.name}
+            </h1>
+            <p className="mt-2 text-slate-400">
+              {match.format} • {formatDate(match.date)} • {match.venue || "Venue TBD"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={copySummary} className="rounded-full border-white/15 text-slate-200 hover:bg-white/10">
+              <Copy className="mr-2 h-4 w-4" />
+              Share summary
+            </Button>
+            <Button variant="outline" onClick={undo} className="rounded-full border-amber-300/20 text-amber-100 hover:bg-amber-300/10">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Undo last ball
+            </Button>
+            <Button variant="outline" onClick={handleDelete} className="rounded-full border-rose-300/20 text-rose-200 hover:bg-rose-400/10">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
 
-          {/* Share Link */}
-          {shareToken && (
-            <motion.div variants={itemVariants}>
-              <Card className="bg-green-500/10 border-green-500/30">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-green-300 font-medium">
-                      Share Link Created
-                    </p>
-                    <p className="text-xs text-green-400/70">
-                      {`${window.location.origin}/share/${shareToken}`}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={copyShareLink}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </motion.div>
+        <div className="sticky top-18 z-30 mb-6 rounded-3xl border border-emerald-300/15 bg-slate-950/75 p-5 backdrop-blur-xl">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-200">Score</p>
+              <p className="mt-2 text-4xl font-semibold text-white">
+                {innings.totalRuns}/{innings.wickets}
+              </p>
+              <p className="mt-1 text-sm text-slate-400">{battingTeam.name}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Overs</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{toOvers(innings.legalBalls)}</p>
+              <p className="mt-1 text-sm text-slate-400 capitalize">{match.status}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Run Rate</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{runRate(innings.totalRuns, innings.legalBalls)}</p>
+              <p className="mt-1 text-sm text-slate-400">Partnership {partnership.runs} ({partnership.balls})</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Target</p>
+              <p className="mt-2 text-3xl font-semibold text-white">{target || "-"}</p>
+              <p className="mt-1 text-sm text-slate-400">{requiredRate === null ? "First innings" : `Req RR ${requiredRate === Infinity ? "∞" : requiredRate}`}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Result</p>
+              <p className="mt-2 text-lg font-semibold text-white">{match.status === "completed" ? getMatchResult(match) : "Live match"}</p>
+            </div>
+          </div>
+        </div>
 
-        {/* Content */}
-        <motion.div
-          ref={scorecardsRef}
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.div variants={itemVariants}>
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-white">
-                  {isEditing ? "Edit Scorecard" : "Scorecard Data"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {scorecard.fields?.map((field: any) => (
-                    <div key={field.id}>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
-                        {field.name}
-                        {field.required && (
-                          <span className="text-red-400 ml-1">*</span>
-                        )}
-                      </label>
-                      {field.type === "text" && (
-                        <Input
-                          type="text"
-                          value={values[field.id] || ""}
-                          onChange={(e) =>
-                            setValues({
-                              ...values,
-                              [field.id]: e.target.value,
-                            })
-                          }
-                          disabled={!isEditing}
-                          className="bg-slate-700/50 border-slate-600 text-white disabled:opacity-50"
-                        />
-                      )}
-                      {field.type === "number" && (
-                        <Input
-                          type="number"
-                          value={values[field.id] || ""}
-                          onChange={(e) =>
-                            setValues({
-                              ...values,
-                              [field.id]: e.target.value,
-                            })
-                          }
-                          disabled={!isEditing}
-                          className="bg-slate-700/50 border-slate-600 text-white disabled:opacity-50"
-                        />
-                      )}
-                      {field.type === "checkbox" && (
-                        <input
-                          type="checkbox"
-                          checked={values[field.id] || false}
-                          onChange={(e) =>
-                            setValues({
-                              ...values,
-                              [field.id]: e.target.checked,
-                            })
-                          }
-                          disabled={!isEditing}
-                          className="rounded"
-                        />
-                      )}
+        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
+                <CardHeader>
+                  <CardTitle className="text-white">Batsmen</CardTitle>
+                  <CardDescription className="text-slate-400">Current pair in the middle.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[striker, nonStriker].map((player, index) => (
+                    <div key={player?.playerId || index} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="font-semibold text-white">
+                          {player?.name || "Waiting"}
+                          {index === 0 ? " ★" : ""}
+                        </p>
+                        <span className="text-sm text-slate-400">{player?.isOut ? "out" : "not out"}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3 text-sm">
+                        <div><p className="text-slate-500">Runs</p><p className="mt-1 text-white">{player?.runs || 0}</p></div>
+                        <div><p className="text-slate-500">Balls</p><p className="mt-1 text-white">{player?.balls || 0}</p></div>
+                        <div><p className="text-slate-500">4s / 6s</p><p className="mt-1 text-white">{player?.fours || 0}/{player?.sixes || 0}</p></div>
+                        <div><p className="text-slate-500">SR</p><p className="mt-1 text-white">{strikeRate(player?.runs || 0, player?.balls || 0)}</p></div>
+                      </div>
                     </div>
                   ))}
-                </div>
+                </CardContent>
+              </Card>
 
-                {isEditing && (
-                  <div className="flex gap-4 mt-6 pt-6 border-t border-slate-600">
-                    <Button
-                      onClick={() => setIsEditing(false)}
-                      variant="outline"
-                      className="border-slate-600 text-slate-300"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSaveValues}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Save Changes
-                    </Button>
+              <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
+                <CardHeader>
+                  <CardTitle className="text-white">Current bowler</CardTitle>
+                  <CardDescription className="text-slate-400">Change bowler at over breaks when needed.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="font-semibold text-white">{bowler?.name || "Select bowler"}</p>
+                      <Target className="h-4 w-4 text-sky-200" />
+                    </div>
+                    <div className="grid grid-cols-4 gap-3 text-sm">
+                      <div><p className="text-slate-500">Overs</p><p className="mt-1 text-white">{toOvers(bowler?.balls || 0)}</p></div>
+                      <div><p className="text-slate-500">Runs</p><p className="mt-1 text-white">{bowler?.runsConceded || 0}</p></div>
+                      <div><p className="text-slate-500">Wickets</p><p className="mt-1 text-white">{bowler?.wickets || 0}</p></div>
+                      <div><p className="text-slate-500">Econ</p><p className="mt-1 text-white">{economyRate(bowler?.runsConceded || 0, bowler?.balls || 0)}</p></div>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-400">Change bowler</label>
+                    <select
+                      value={innings.currentBowlerId || ""}
+                      onChange={(e) => updateMatch(selectBowler(match, e.target.value))}
+                      className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 text-white"
+                    >
+                      {bowlingTeam.players.map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Metadata */}
-          <motion.div variants={itemVariants} className="mt-8 grid md:grid-cols-3 gap-4">
-            <Card className="bg-slate-800/50 border-slate-700/50">
-              <CardContent className="p-4">
-                <p className="text-xs text-slate-400 mb-1">Created</p>
-                <p className="text-sm font-semibold text-white">
-                  {new Date(scorecard.createdAt).toLocaleDateString()}
-                </p>
+            <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-white">Live scoring controls</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Big thumb-friendly buttons for fast updates.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-4 gap-3">
+                  {[0, 1, 2, 3, 4, 6].map((runs) => (
+                    <Button
+                      key={runs}
+                      onClick={() => scoreRuns(runs as 0 | 1 | 2 | 3 | 4 | 6)}
+                      className="h-16 rounded-2xl bg-sky-300 text-xl font-semibold text-slate-950 hover:bg-sky-200"
+                    >
+                      {runs}
+                    </Button>
+                  ))}
+                  <Button onClick={wicket} className="h-16 rounded-2xl bg-rose-400 text-xl font-semibold text-white hover:bg-rose-300">
+                    W
+                  </Button>
+                  <Button onClick={() => addExtra("wd")} className="h-16 rounded-2xl bg-amber-300 text-base font-semibold text-slate-950 hover:bg-amber-200">
+                    WD
+                  </Button>
+                  <Button onClick={() => addExtra("nb")} className="h-16 rounded-2xl bg-amber-300 text-base font-semibold text-slate-950 hover:bg-amber-200">
+                    NB
+                  </Button>
+                  <Button onClick={() => addExtra("bye")} className="h-16 rounded-2xl bg-emerald-300 text-base font-semibold text-slate-950 hover:bg-emerald-200">
+                    BYE
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-            <Card className="bg-slate-800/50 border-slate-700/50">
-              <CardContent className="p-4">
-                <p className="text-xs text-slate-400 mb-1">Last Updated</p>
-                <p className="text-sm font-semibold text-white">
-                  {new Date(scorecard.updatedAt).toLocaleDateString()}
-                </p>
+
+            <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-white">Ball-by-ball timeline</CardTitle>
+                  <CardDescription className="text-slate-400">Color-coded overs and deliveries.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[...innings.overSummaries].reverse().map((over) => (
+                  <div key={over.overNumber} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="font-medium text-white">Over {over.overNumber}</p>
+                      <p className="text-sm text-slate-400">{over.runs} runs • {over.wickets} wicket(s)</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {over.balls.map((ball) => (
+                        <div
+                          key={ball.id}
+                          className={`rounded-xl border px-3 py-2 text-sm font-semibold ${ballTone(ball)}`}
+                          title={ball.commentary}
+                        >
+                          {ball.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
-            <Card className="bg-slate-800/50 border-slate-700/50">
-              <CardContent className="p-4">
-                <p className="text-xs text-slate-400 mb-1">Fields</p>
-                <p className="text-sm font-semibold text-white">
-                  {scorecard.fields?.length || 0}
-                </p>
+          </div>
+
+          <div className="space-y-6">
+            <ScoreTable innings={innings} battingTeamName={battingTeam.name} bowlingTeamName={bowlingTeam.name} />
+
+            {match.innings[1].timeline.length > 0 ? (
+              <ScoreTable
+                innings={match.innings[0]}
+                battingTeamName={getTeamById(match, match.innings[0].battingTeamId).name}
+                bowlingTeamName={getTeamById(match, match.innings[0].bowlingTeamId).name}
+              />
+            ) : null}
+
+            <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-white">Match summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-slate-200">
+                  <p className="font-medium text-white">Toss</p>
+                  <p className="mt-1">
+                    {getTeamById(match, match.tossWinnerTeamId).name} won the toss and chose to {match.tossDecision}.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/10 p-4 text-emerald-50">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Trophy className="h-4 w-4" />
+                    Result
+                  </div>
+                  <p className="mt-2">{match.status === "completed" ? getMatchResult(match) : "Match still in progress."}</p>
+                </div>
               </CardContent>
             </Card>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

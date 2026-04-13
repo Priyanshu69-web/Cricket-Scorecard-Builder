@@ -1,3 +1,4 @@
+import type { Mongoose } from "mongoose";
 import 'next-auth';
 
 declare module 'next-auth' {
@@ -23,7 +24,7 @@ declare module 'next-auth/jwt' {
 
 declare global {
   var mongoose: {
-    conn: any | null;
-    promise: Promise<any> | null;
+    conn: Mongoose | null;
+    promise: Promise<Mongoose> | null;
   };
 }

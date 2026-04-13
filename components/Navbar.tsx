@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sun, Moon, LogOut, LogIn, BarChart3 } from "lucide-react";
+import { Menu, X, Sun, Moon, LogOut, LogIn, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,8 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { name: "Dashboard", href: "/dashboard" },
-    { name: "Create", href: "/scorecard/create" },
+    { name: "Matches", href: "/scorecard" },
+    { name: "New Match", href: "/scorecard/create" },
   ];
 
   const navVariants = {
@@ -85,31 +85,29 @@ const Navbar = () => {
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.8 }}
               >
-                <BarChart3 className="h-7 w-7 text-blue-500" />
+                <Trophy className="h-7 w-7 text-emerald-400" />
               </motion.div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Scorecard
+              <span className="text-xl font-bold bg-gradient-to-r from-emerald-300 to-sky-300 bg-clip-text text-transparent">
+                Cricket Live
               </span>
             </Link>
           </motion.div>
 
           {/* Desktop Navigation */}
-          {session && (
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-1">
-                {navItems.map((item) => (
-                  <motion.div key={item.name} variants={itemVariants}>
-                    <Link
-                      href={item.href}
-                      className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-                    >
-                      {item.name}
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
+          <div className="hidden md:block">
+            <div className="ml-10 flex items-baseline space-x-1">
+              {navItems.map((item) => (
+                <motion.div key={item.name} variants={itemVariants}>
+                  <Link
+                    href={item.href}
+                    className="text-slate-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    {item.name}
+                  </Link>
+                </motion.div>
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
@@ -199,7 +197,7 @@ const Navbar = () => {
             className="md:hidden overflow-hidden bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50"
           >
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              {session && navItems.map((item, index) => (
+              {navItems.map((item, index) => (
                 <motion.div
                   key={item.name}
                   initial={{ opacity: 0, x: -20 }}

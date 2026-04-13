@@ -1,28 +1,32 @@
-import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google';
-import { connectDB } from './mongodb';
-import { User } from './User';
-import bcryptjs from 'bcryptjs';
+import { getServerSession, type NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { connectDB } from "./mongodb";
+import { User } from "./User";
+import bcryptjs from "bcryptjs";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          throw new Error("Invalid credentials");
         }
 
         await connectDB();
 
         const user = await User.findOne({ email: credentials.email });
         if (!user) {
-          throw new Error('User not found');
+          throw new Error("User not found");
         }
 
-        const isValid = await bcryptjs.compare(credentials.password, user.password || '');
+        const isValid = await bcryptjs.compare(credentials.password, user.password || "");
         if (!isValid) {
-          throw new Error('Invalid password');
+          throw new Error("Invalid password");
         }
 
         return {
@@ -34,13 +38,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === 'google') {
+      if (account?.provider === "google") {
         await connectDB();
 
         let dbUser = await User.findOne({ email: user.email });
@@ -51,8 +55,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: user.image,
           });
         }
-        return true;
       }
+
       return true;
     },
     async jwt({ token, user }) {
@@ -69,11 +73,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: {
-    signIn: '/auth/signin',
-    signUp: '/auth/signup',
+    signIn: "/auth/signin",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+export function auth() {
+  return getServerSession(authOptions);
+}

@@ -1,175 +1,91 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, ArrowRight, Zap, Users, Shield, Smartphone } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Activity, ArrowRight, CircleDot, History, Smartphone } from "lucide-react";
 
 export default function HomePage() {
-  const { data: session } = useSession();
-
-  if (session) {
-    redirect("/dashboard");
-  }
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.8 },
-    },
-  };
-
   const features = [
     {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Create and manage scorecards in seconds with our intuitive interface",
+      icon: Activity,
+      title: "Live ball-by-ball scoring",
+      description: "One tap updates score, overs, strike, bowler figures, and run rate instantly.",
     },
     {
-      icon: Users,
-      title: "Real-Time Collaboration",
-      description: "Share scorecards and track scores with your team in real-time",
+      icon: CircleDot,
+      title: "Real cricket timeline",
+      description: "See every over as colored ball events like a real scoring app.",
     },
     {
-      icon: Shield,
-      title: "Secure & Private",
-      description: "Your scorecards are encrypted and secured with enterprise-grade protection",
+      icon: History,
+      title: "Match history",
+      description: "Create and revisit multiple matches with saved scorecards.",
     },
     {
       icon: Smartphone,
-      title: "Fully Responsive",
-      description: "Works seamlessly on desktop, tablet, and mobile devices",
+      title: "Thumb-friendly controls",
+      description: "Big scoring buttons built for fast mobile use under pressure.",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20">
-      {/* Hero Section */}
-      <motion.section
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="max-w-7xl mx-auto px-4 py-20"
-      >
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <BarChart3 className="w-16 h-16 text-blue-500" />
-          </div>
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Professional Scorecard Builder
-          </h1>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8">
-            Create, manage, and share custom scorecards for any sport or activity. Perfect for teams, coaches, and enthusiasts.
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.18),_transparent_28%),linear-gradient(180deg,_#08131f_0%,_#0d1b2a_48%,_#071018_100%)] pt-20">
+      <section className="mx-auto max-w-7xl px-4 py-20">
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+          <p className="mb-5 inline-flex rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-1 text-xs uppercase tracking-[0.28em] text-emerald-100">
+            Cricket Scorecard Builder
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/signup">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8"
-              >
-                Get Started Free
+          <h1 className="mx-auto max-w-5xl text-5xl font-semibold tracking-tight text-white md:text-7xl">
+            Score every ball, track every player, and run the match like a real cricket app.
+          </h1>
+          <p className="mx-auto mt-6 max-w-3xl text-lg text-slate-300">
+            Create matches, manage innings, update batting and bowling live, undo mistakes, and
+            review a proper scorecard with over timelines.
+          </p>
+          <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
+            <Link href="/scorecard/create">
+              <Button size="lg" className="h-12 rounded-full bg-emerald-400 px-8 text-slate-950 hover:bg-emerald-300">
+                Start Match
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/auth/signin">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-slate-600 text-slate-300 hover:bg-slate-800"
-              >
-                Sign In
+            <Link href="/scorecard">
+              <Button size="lg" variant="outline" className="h-12 rounded-full border-white/15 text-slate-200 hover:bg-white/10">
+                View Match History
               </Button>
             </Link>
           </div>
         </motion.div>
-      </motion.section>
+      </section>
 
-      {/* Features Section */}
-      <motion.section
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        className="max-w-7xl mx-auto px-4 py-20"
-      >
-        <motion.h2
-          variants={itemVariants}
-          className="text-4xl font-bold text-center mb-12 text-white"
-        >
-          Why Choose Scorecard Builder?
-        </motion.h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="mx-auto max-w-7xl px-4 pb-20">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover={{ y: -5 }}
-                className="group"
+                key={feature.title}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
               >
-                <Card className="bg-slate-800/50 border-slate-700/50 hover:border-blue-500/50 backdrop-blur-sm h-full transition-all duration-300">
+                <Card className="h-full border-white/10 bg-white/5 backdrop-blur-xl">
                   <CardContent className="p-6">
-                    <Icon className="w-12 h-12 text-blue-500 mb-4 group-hover:text-purple-400 transition-colors" />
-                    <h3 className="text-lg font-semibold text-white mb-2">
-                      {feature.title}
-                    </h3>
-                    <p className="text-slate-400">
-                      {feature.description}
-                    </p>
+                    <div className="mb-4 inline-flex rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-3 text-emerald-200">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-white">{feature.title}</h2>
+                    <p className="mt-3 text-slate-400">{feature.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>
             );
           })}
         </div>
-      </motion.section>
-
-      {/* CTA Section */}
-      <motion.section
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        className="max-w-4xl mx-auto px-4 py-20 text-center"
-      >
-        <motion.div
-          variants={itemVariants}
-          className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-2xl p-12"
-        >
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to create your first scorecard?
-          </h2>
-          <p className="text-slate-300 mb-8">
-            Join thousands of users who are already using Scorecard Builder to track their favorite sports and activities.
-          </p>
-          <Link href="/auth/signup">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-            >
-              Start Free Trial
-            </Button>
-          </Link>
-        </motion.div>
-      </motion.section>
+      </section>
     </div>
   );
 }
