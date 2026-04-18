@@ -7,6 +7,8 @@ export interface IMatch extends Document {
   teamBName: string;
   date?: string;
   venue?: string;
+  shareToken?: string;
+  isPublic?: boolean;
   payload: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +22,8 @@ const MatchSchema = new Schema<IMatch>(
     teamBName: { type: String, required: true, default: "" },
     date: { type: String, default: "" },
     venue: { type: String, default: "" },
+    shareToken: { type: String, unique: true, sparse: true },
+    isPublic: { type: Boolean, default: false },
     payload: { type: Schema.Types.Mixed, required: true },
   },
   { timestamps: true }

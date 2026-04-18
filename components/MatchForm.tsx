@@ -2,10 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Grid,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
+import SportsCricketRoundedIcon from "@mui/icons-material/SportsCricketRounded";
 import PlayerForm from "@/components/PlayerForm";
 import PlayerPicker from "@/components/PlayerPicker";
 import { createMatch, quickPlayers } from "@/lib/cricket";
@@ -74,7 +85,8 @@ export default function MatchForm() {
     loadProfiles().catch(() => setProfiles([]));
   }, []);
 
-  const selectableProfiles = useMemo(() => profiles.slice(0, 80), [profiles]);
+  const selectableProfiles = useMemo(() => profiles.slice(0, 120), [profiles]);
+  const selectionReady = selectedTeamAIds.length === 11 && selectedTeamBIds.length === 11;
 
   function quickStart() {
     const nextTeamA = "Mumbai Mavericks";
@@ -84,10 +96,13 @@ export default function MatchForm() {
     setFormat("T20");
     setOversLimit(20);
     setVenue("Wankhede Stadium");
+    setDate(new Date().toISOString().slice(0, 10));
     setTossWinner("teamA");
     setTossDecision("bat");
     setTeamAPlayers(quickPlayers(nextTeamA).join("\n"));
     setTeamBPlayers(quickPlayers(nextTeamB).join("\n"));
+    setSelectedTeamAIds([]);
+    setSelectedTeamBIds([]);
   }
 
   function updateFormat(nextFormat: MatchFormat) {
@@ -119,12 +134,13 @@ export default function MatchForm() {
   async function handleCreateInlinePlayer(
     team: "A" | "B",
     payload: {
-    name: string;
-    role: PlayerProfile["role"];
-    battingStyle: PlayerProfile["battingStyle"];
-    bowlingStyle: string;
-    imageUrl: string;
-  }) {
+      name: string;
+      role: PlayerProfile["role"];
+      battingStyle: PlayerProfile["battingStyle"];
+      bowlingStyle: string;
+      imageUrl: string;
+    }
+  ) {
     const res = await fetch("/api/players", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -146,116 +162,171 @@ export default function MatchForm() {
   }
 
   return (
-    <Card className="border-slate-200 bg-white">
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <div>
-          <CardTitle>Create match</CardTitle>
-          <CardDescription>
-            Set up teams, toss, overs, and player lists in one place.
-          </CardDescription>
-        </div>
-        <Button
-          type="button"
-          onClick={quickStart}
-          variant="outline"
-          className="rounded-md"
+    <Stack spacing={2}>
+      <Paper sx={{ p: { xs: 1.5, md: 2 }, borderRadius: 3, border: "1px solid #d8e1ee" }}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={1.5}
+          sx={{ justifyContent: "space-between", alignItems: { xs: "flex-start", md: "center" } }}
         >
-          <Zap className="mr-2 h-4 w-4" />
-          Quick Start Match
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Team A</label>
-            <Input value={teamAName} onChange={(e) => setTeamAName(e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Team B</label>
-            <Input value={teamBName} onChange={(e) => setTeamBName(e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Format</label>
-            <select
+          <Box>
+            <Typography variant="h2" sx={{ fontSize: { xs: "1.2rem", md: "1.4rem" } }}>
+              Create match
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Cricbuzz-inspired compact flow for team setup, player selection, and toss details.
+            </Typography>
+          </Box>
+          <Button variant="outlined" startIcon={<AutoFixHighRoundedIcon />} onClick={quickStart}>
+            Quick fill
+          </Button>
+        </Stack>
+
+        <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField fullWidth size="small" label="Team A" value={teamAName} onChange={(e) => setTeamAName(e.target.value)} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField fullWidth size="small" label="Team B" value={teamBName} onChange={(e) => setTeamBName(e.target.value)} />
+          </Grid>
+          <Grid size={{ xs: 6, md: 3 }}>
+            <TextField
+              fullWidth
+              select
+              size="small"
+              label="Format"
               value={format}
               onChange={(e) => updateFormat(e.target.value as MatchFormat)}
-              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
             >
               {formatOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <MenuItem key={option.value} value={option.value}>
                   {option.label}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Overs</label>
-            <Input type="number" value={oversLimit} onChange={(e) => setOversLimit(Number(e.target.value || 20))} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Venue</label>
-            <Input value={venue} onChange={(e) => setVenue(e.target.value)} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Date</label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Toss winner</label>
-            <select
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 6, md: 3 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              label="Overs"
+              value={oversLimit}
+              onChange={(e) => setOversLimit(Number(e.target.value || 20))}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <TextField fullWidth size="small" label="Venue" value={venue} onChange={(e) => setVenue(e.target.value)} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="Date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              select
+              size="small"
+              label="Toss winner"
               value={tossWinner}
               onChange={(e) => setTossWinner(e.target.value as "teamA" | "teamB")}
-              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
             >
-              <option value="teamA">{teamAName}</option>
-              <option value="teamB">{teamBName}</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Toss decision</label>
-            <select
+              <MenuItem value="teamA">{teamAName}</MenuItem>
+              <MenuItem value="teamB">{teamBName}</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              select
+              size="small"
+              label="Decision"
               value={tossDecision}
               onChange={(e) => setTossDecision(e.target.value as "bat" | "bowl")}
-              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
             >
-              <option value="bat">Bat first</option>
-              <option value="bowl">Bowl first</option>
-            </select>
-          </div>
-        </div>
+              <MenuItem value="bat">Bat first</MenuItem>
+              <MenuItem value="bowl">Bowl first</MenuItem>
+            </TextField>
+          </Grid>
+        </Grid>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", gap: 1 }}>
+          <Chip size="small" label={`${format} setup`} color="primary" />
+          <Chip size="small" variant="outlined" label={`${oversLimit} overs`} />
+          <Chip size="small" variant="outlined" label={`${teamAName} vs ${teamBName}`} />
+        </Stack>
+      </Paper>
+
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, lg: 6 }}>
           <PlayerPicker
-            title={`Select saved players for ${teamAName}`}
+            title={`${teamAName} squad`}
             players={selectableProfiles}
             selectedIds={selectedTeamAIds}
+            disabledIds={selectedTeamBIds}
             onChange={setSelectedTeamAIds}
             onCreatePlayer={(payload) => handleCreateInlinePlayer("A", payload)}
           />
+        </Grid>
+        <Grid size={{ xs: 12, lg: 6 }}>
           <PlayerPicker
-            title={`Select saved players for ${teamBName}`}
+            title={`${teamBName} squad`}
             players={selectableProfiles}
             selectedIds={selectedTeamBIds}
+            disabledIds={selectedTeamAIds}
             onChange={setSelectedTeamBIds}
             onCreatePlayer={(payload) => handleCreateInlinePlayer("B", payload)}
           />
-        </div>
+        </Grid>
+      </Grid>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <PlayerForm label={`${teamAName} squad`} value={teamAPlayers} onChange={setTeamAPlayers} />
-          <PlayerForm label={`${teamBName} squad`} value={teamBPlayers} onChange={setTeamBPlayers} />
-        </div>
+      <Paper sx={{ p: { xs: 1.5, md: 2 }, borderRadius: 3, border: "1px solid #d8e1ee" }}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Manual fallback squads
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              If you do not pick a full XI, the textarea squad remains the backup source.
+            </Typography>
+          </Box>
+          {selectionReady ? (
+            <Alert severity="success" sx={{ py: 0 }}>
+              Both XIs are locked in and ready.
+            </Alert>
+          ) : (
+            <Alert severity="info" sx={{ py: 0 }}>
+              Select 11 players on each side for the best experience.
+            </Alert>
+          )}
+        </Stack>
+        <Divider sx={{ my: 1.5 }} />
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <PlayerForm label={`${teamAName} squad`} value={teamAPlayers} onChange={setTeamAPlayers} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <PlayerForm label={`${teamBName} squad`} value={teamBPlayers} onChange={setTeamBPlayers} />
+          </Grid>
+        </Grid>
+      </Paper>
 
-        <Button
-          onClick={handleCreate}
-          className="h-11 w-full rounded-md bg-emerald-600 font-semibold text-white hover:bg-emerald-500"
-        >
-          Start scoring
-        </Button>
-      </CardContent>
-    </Card>
+      <Button
+        onClick={handleCreate}
+        size="large"
+        variant="contained"
+        startIcon={<SportsCricketRoundedIcon />}
+        sx={{ py: 1.2, borderRadius: 3 }}
+      >
+        Start live scoring
+      </Button>
+    </Stack>
   );
 }

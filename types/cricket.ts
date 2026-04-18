@@ -27,6 +27,30 @@ export type PlayerProfile = {
   };
 };
 
+export type PlayerMatchRecord = {
+  matchId: string;
+  matchLabel: string;
+  date: string;
+  venue?: string;
+  format: MatchFormat;
+  teamName: string;
+  opponentName: string;
+  result: string;
+  batting: {
+    runs: number;
+    balls: number;
+    fours: number;
+    sixes: number;
+    dismissal: string;
+  };
+  bowling: {
+    balls: number;
+    maidens: number;
+    runsConceded: number;
+    wickets: number;
+  };
+};
+
 export type DismissalType =
   | "bowled"
   | "caught"
@@ -148,6 +172,8 @@ export type Match = {
   currentInnings: 1 | 2;
   innings: Innings[];
   result?: string;
+  shareToken?: string;
+  isPublic?: boolean;
   history: MatchSnapshot[];
   createdAt: number;
   updatedAt: number;

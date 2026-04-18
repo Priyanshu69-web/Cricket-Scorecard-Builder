@@ -2,11 +2,28 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import AvatarBadge from "@/components/AvatarBadge";
+import {
+  Avatar,
+  Box,
+  Button,
+  Container,
+  Grid,
+  MenuItem,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { PlayerProfile } from "@/types/cricket";
+
+function initial(name: string) {
+  return (name || "?").trim().charAt(0).toUpperCase();
+}
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<PlayerProfile[]>([]);
@@ -40,78 +57,90 @@ export default function PlayersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-24">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Player Profiles</h1>
-        <p className="text-sm text-slate-600 dark:text-slate-300">Create and manage reusable players for match selection.</p>
-      </div>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f6fb", pt: 10, pb: 4 }}>
+      <Container maxWidth="lg">
+        <Stack spacing={0.75} sx={{ mb: 2 }}>
+          <Typography variant="h1" sx={{ fontSize: { xs: "1.4rem", md: "1.8rem" } }}>
+            Player profiles
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Save players once, reuse them in teams, and open full cricket records from the list.
+          </Typography>
+        </Stack>
 
-      <Card className="mb-4 border-slate-200 bg-white">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base text-slate-900">Add player</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-2 md:grid-cols-6">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as PlayerProfile["role"])}
-            className="h-10 rounded-md border border-slate-300 px-2 text-sm"
-          >
-            <option>Batsman</option>
-            <option>Bowler</option>
-            <option>All-rounder</option>
-            <option>Wicketkeeper</option>
-          </select>
-          <select
-            value={battingStyle}
-            onChange={(e) => setBattingStyle(e.target.value as PlayerProfile["battingStyle"])}
-            className="h-10 rounded-md border border-slate-300 px-2 text-sm"
-          >
-            <option>Right</option>
-            <option>Left</option>
-          </select>
-          <Input value={bowlingStyle} onChange={(e) => setBowlingStyle(e.target.value)} placeholder="Bowling style" />
-          <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Profile image URL" />
-          <Button onClick={createPlayer}>Create</Button>
-        </CardContent>
-      </Card>
+        <Paper sx={{ p: 2, borderRadius: 3, border: "1px solid #d8e1ee", mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ mb: 1.25, fontWeight: 700 }}>
+            Add player
+          </Typography>
+          <Grid container spacing={1.25}>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField fullWidth size="small" label="Name" value={name} onChange={(e) => setName(e.target.value)} />
+            </Grid>
+            <Grid size={{ xs: 6, md: 2 }}>
+              <TextField fullWidth select size="small" label="Role" value={role} onChange={(e) => setRole(e.target.value as PlayerProfile["role"])}>
+                {["Batsman", "Bowler", "All-rounder", "Wicketkeeper"].map((value) => (
+                  <MenuItem key={value} value={value}>{value}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid size={{ xs: 6, md: 2 }}>
+              <TextField fullWidth select size="small" label="Batting style" value={battingStyle} onChange={(e) => setBattingStyle(e.target.value as PlayerProfile["battingStyle"])}>
+                {["Right", "Left"].map((value) => (
+                  <MenuItem key={value} value={value}>{value}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField fullWidth size="small" label="Bowling style" value={bowlingStyle} onChange={(e) => setBowlingStyle(e.target.value)} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 2 }}>
+              <TextField fullWidth size="small" label="Avatar URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            </Grid>
+            <Grid size={12}>
+              <Button variant="contained" onClick={createPlayer}>
+                Save player
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
 
-      <Card className="border-slate-200 bg-white">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base text-slate-900">All players</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-slate-500">
-                <th className="pb-2">Player</th>
-                <th className="pb-2">Role</th>
-                <th className="pb-2">Matches</th>
-                <th className="pb-2">Runs</th>
-                <th className="pb-2">Wickets</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((player) => (
-                <tr key={player._id} className="border-t border-slate-200 text-slate-700">
-                  <td className="py-2">
-                    <div className="flex items-center gap-2">
-                      <AvatarBadge name={player.name} imageUrl={player.imageUrl} />
-                      <Link href={`/players/${player._id}`} className="text-blue-600 hover:underline">
-                        {player.name}
-                      </Link>
-                    </div>
-                  </td>
-                  <td className="py-2">{player.role}</td>
-                  <td className="py-2">{player.matchesPlayed}</td>
-                  <td className="py-2">{player.batting.runs}</td>
-                  <td className="py-2">{player.bowling.wickets}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
-    </div>
+        <Paper sx={{ p: 1.5, borderRadius: 3, border: "1px solid #d8e1ee" }}>
+          <Typography variant="subtitle1" sx={{ px: 0.5, pb: 1, fontWeight: 700 }}>
+            Saved players
+          </Typography>
+          <Box sx={{ overflowX: "auto" }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Player</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Matches</TableCell>
+                  <TableCell>Runs</TableCell>
+                  <TableCell>Wickets</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {players.map((player) => (
+                  <TableRow key={player._id} hover>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+                        <Avatar src={player.imageUrl} sx={{ width: 34, height: 34 }}>
+                          {initial(player.name)}
+                        </Avatar>
+                        <Link href={`/players/${player._id}`}>{player.name}</Link>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>{player.role}</TableCell>
+                    <TableCell>{player.matchesPlayed}</TableCell>
+                    <TableCell>{player.batting.runs}</TableCell>
+                    <TableCell>{player.bowling.wickets}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

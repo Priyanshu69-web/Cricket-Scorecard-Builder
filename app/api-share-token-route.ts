@@ -1,39 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { IScorecard, Scorecard } from "@/lib/Scorecard";
-import { buildScorecardSummary } from "@/lib/scorecard-utils";
+import { MatchModel } from "@/lib/Match";
+import { Match } from "@/types/cricket";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { token: string } }
 ) {
   try {
     await connectDB();
-    const scorecard = (await Scorecard.findOne({
+    const record = await MatchModel.findOne({
       shareToken: params.token,
       isPublic: true,
-    }).lean()) as
-      | (Pick<IScorecard, "criteria" | "entries"> & Record<string, unknown>)
-      | null;
+    }).lean();
 
-    if (!scorecard) {
-      return NextResponse.json(
-        { error: "Scorecard not found" },
-        { status: 404 }
-      );
+    if (!record) {
+      return NextResponse.json({ error: "Shared match not found" }, { status: 404 });
     }
 
+    const sharedRecord = record as unknown as { payload: Match; updatedAt: string };
+
     return NextResponse.json({
-      ...scorecard,
-      summary: buildScorecardSummary({
-        criteria: scorecard.criteria || [],
-        entries: scorecard.entries || [],
-      }),
+      type: "cricket-match",
+      match: sharedRecord.payload,
+      sharedAt: sharedRecord.updatedAt,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch scorecard" },
-      { status: 500 }
-    );
+    console.error("GET /api/share/:token error", error);
+    return NextResponse.json({ error: "Failed to load shared match" }, { status: 500 });
   }
 }

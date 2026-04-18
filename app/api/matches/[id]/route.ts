@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { MatchModel } from "@/lib/Match";
+import { Match } from "@/types/cricket";
 
 export async function GET(
   _req: NextRequest,
@@ -12,7 +13,7 @@ export async function GET(
     if (!record) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
-    return NextResponse.json(record.payload);
+    return NextResponse.json((record as unknown as { payload: Match }).payload);
   } catch (error) {
     console.error("GET /api/matches/:id error", error);
     return NextResponse.json({ error: "Failed to fetch match" }, { status: 500 });
@@ -39,6 +40,8 @@ export async function PATCH(
         teamBName: match.teamB?.name || "",
         date: match.date || "",
         venue: match.venue || "",
+        shareToken: match.shareToken || undefined,
+        isPublic: Boolean(match.isPublic),
         payload: match,
       },
       { new: true }
